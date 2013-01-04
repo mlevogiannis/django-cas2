@@ -6,12 +6,21 @@ from django.contrib.auth.models import User
 from django_cas.exceptions import CasTicketException
 from django_cas.models import Tgt, PgtIOU
 from urllib import urlencode, urlopen
+import urllib2
 from urlparse import urljoin
 from xml.dom import minidom
 import logging
 import time
 
-__all__ = ['CASBackend']
+try:
+    from xml.etree import ElementTree
+    _hush_pyflakes = [ElementTree]
+except ImportError:
+    from elementtree import ElementTree
+
+import uuid
+
+__all__ = ['CASBackend', 'CASBackend_SAML']
 
 logger = logging.getLogger(__name__)
 
@@ -112,10 +121,48 @@ class CASBackend_SAML(CASBackend):
     SAML_1_0_NS = 'urn:oasis:names:tc:SAML:1.0:'
     SAML_1_0_PROTOCOL_NS = '{' + SAML_1_0_NS + 'protocol' + '}'
     SAML_1_0_ASSERTION_NS = '{' + SAML_1_0_NS + 'assertion' + '}'
-    
-    def get_saml_assertion(self, ticket):
-        return """<?xml version="1.0" encoding="UTF-8"?><SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/"><SOAP-ENV:Header/><SOAP-ENV:Body><samlp:Request xmlns:samlp="urn:oasis:names:tc:SAML:1.0:protocol"  MajorVersion="1" MinorVersion="1" RequestID="_192.168.16.51.1024506224022" IssueInstant="2002-06-19T17:03:44.022Z"><samlp:AssertionArtifact>""" + ticket + """</samlp:AssertionArtifact></samlp:Request></SOAP-ENV:Body></SOAP-ENV:Envelope>"""
 
+    SAML_REQUEST = """<?xml version="1.0" encoding="UTF-8"?>
+    <SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
+    <SOAP-ENV:Header/>
+    <SOAP-ENV:Body>
+        <samlp:Request xmlns:samlp="urn:oasis:names:tc:SAML:1.0:protocol"
+                MajorVersion="1" MinorVersion="1"
+                RequestID="%(request_id)s" IssueInstant="%(issue_instant)s">
+        <samlp:AssertionArtifact>%(ticket)s</samlp:AssertionArtifact>
+        </samlp:Request>
+    </SOAP-ENV:Body>
+    </SOAP-ENV:Envelope>
+    """
+    HTTP_HEADERS = {'soapaction': 'http://www.oasis-open.org/committees/security',
+            'cache-control': 'no-cache',
+            'pragma': 'no-cache',
+            'accept': 'text/xml',
+            'connection': 'keep-alive',
+            'content-type': 'text/xml'}
+
+    def _prepare_request(self, ticket):
+        """Prepare a few variables for the SAML_REQUEST
+        """
+        return { 'request_id': uuid.uuid4(),
+                'issue_instant': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+                'ticket': ticket }
+
+    def _get_response(self, rdict, params):
+        """ send request and fetch response from CAS through HTTP
+        """
+        url = urllib2.Request(urljoin(settings.CAS_SERVER_URL, 'samlValidate') \
+                                + '?' + urlencode(params), '', self.HTTP_HEADERS)
+
+        url.add_data(self.SAML_REQUEST % rdict)
+        try:
+            page = None
+            logger.debug("Verifying ticket through: %s", url)
+            page = urllib2.urlopen(url)
+            return ElementTree.parse(page)
+        finally:
+            if page:
+                page.close()
 
     def _verify(self, ticket, service):
         """Verifies CAS 3.0+ XML-based authentication ticket and returns extended attributes.
@@ -126,48 +173,83 @@ class CASBackend_SAML(CASBackend):
         Returns username and attributes on success and None,None on failure.
         """
 
-        try:
-            from xml.etree import ElementTree
-        except ImportError:
-            from elementtree import ElementTree
 
         # We do the SAML validation
-        headers = {'soapaction': 'http://www.oasis-open.org/committees/security',
-            'cache-control': 'no-cache',
-            'pragma': 'no-cache',
-            'accept': 'text/xml',
-            'connection': 'keep-alive',
-            'content-type': 'text/xml'}
         params = {'TARGET': service}
-        url = urllib2.Request(urljoin(settings.CAS_SERVER_URL, 'samlValidate') + '?' + urlencode(params), '', headers)
-        data = get_saml_assertion(ticket)
-        url.add_data(get_saml_assertion(ticket))
+        rdict = self._prepare_request(ticket)
 
-        page = urllib2.urlopen(url)
+        try:
+            tree = self._get_response(rdict, params)
+            # logger.debug("The tree: %s", ElementTree.dump(tree))
+        except Exception:
+            logger.exception("Cannot get ticket validation response:")
+            return (None, None)
 
+        _status_code = './/' + self.SAML_1_0_PROTOCOL_NS + 'StatusCode'
+        _attribute = './/%sAttributeStatement/%sAttribute' % (self.SAML_1_0_ASSERTION_NS, self.SAML_1_0_ASSERTION_NS)
+        _attribute_value = self.SAML_1_0_ASSERTION_NS + 'AttributeValue'
         try:
             user = None
             attributes = {}
-            response = page.read()
-            print response
-            tree = ElementTree.fromstring(response)
             # Find the authentication status
-            success = tree.find('.//' + SAML_1_0_PROTOCOL_NS + 'StatusCode')
-            if success is not None and success.attrib['Value'] == 'samlp:Success':
+            elem = tree.getroot()
+            assert elem.tag == '{http://schemas.xmlsoap.org/soap/envelope/}Envelope' , elem.tag
+            elem = elem[0]
+            assert elem.tag == '{http://schemas.xmlsoap.org/soap/envelope/}Body' , elem.tag
+            
+            response = elem[0]
+            if response.tag !=  self.SAML_1_0_PROTOCOL_NS + 'Response':
+                logger.warning("SAML response is not valid: %s", response.tag)
+                raise ValueError("Invalid SAML response")
+            if response.get('MajorVersion', None) != '1' or response.get('MinorVersion', None) != '1':
+                raise ValueError("Invalid SAML version in response: %s.%s", response.get('MajorVersion', '?'), response.get('MinorVersion', '?'))
+            if response.get('Recipient', '') != '?':
+                logger.warning("Recipient mismatch: %s != %s", response.get('Recipient', ''), '')
+            else:
+                logger.debug("Rest of attributes are: %s", response.items())
+
+            res_status = response.find(_status_code)
+
+            if res_status is not None and ':' in res_status.get('Value',''):
+                res_status_val = res_status.get('Value','').rsplit(':',1)[1]
+            else:
+                res_status_val = '?'
+
+            if res_status_val == 'Success':
                 # User is validated
-                attrs = tree.findall('.//' + SAML_1_0_ASSERTION_NS + 'Attribute')
-                for at in attrs:
-                    if 'uid' in at.attrib.values():
-                        user = at.find(SAML_1_0_ASSERTION_NS + 'AttributeValue').text
-                        attributes['uid'] = user
-                    values = at.findall(SAML_1_0_ASSERTION_NS + 'AttributeValue')
-                    if len(values) > 1:
-                        values_array = []
-                        for v in values:
-                            values_array.append(v.text)
-                        attributes[at.attrib['AttributeName']] = values_array
+                for at in response.iterfind(_attribute):
+                    att_name = at.get('AttributeName', None)
+                    if not att_name:
+                        logger.warning("Malformed attribute in SAML:\n %s", ElementTree.tostring(at))
+                        continue
+                    # att_ns = at.get('AttributeNamespace') eventually check that?
+                    vals = []
+                    for ve in at.iter(_attribute_value):
+                        # Here, we ignore so far
+                        # the "{http://www.w3.org/2001/XMLSchema-instance}type"
+                        # attribute that could indicate a non-string variable
+                        vals.append(ve.text)
+                    
+                    if att_name == 'uid':
+                        if len(vals) != 1:
+                            # that would be ambiguous, it's a problem
+                            raise ValueError("Attribute \"uid\" has %d values!" % len(vals))
+                        user = vals[0]
+                    
+                    if len(vals) == 1:
+                        attributes[att_name] = vals[0]
                     else:
-                    attributes[at.attrib['AttributeName']] = values[0].text
+                        attributes[att_name] = vals
+            else:
+                # response.find("Status/StatusMessage") and ("Status/StatusDetail")
+                logger.info("Ticket validation of \"%s\" failed: %s", ticket, res_status.get('Value', ''))
+                return None, None
+            logger.debug("User: %s, attributes: %d", user, len(attributes))
+            for a, v in attributes.items():
+                logger.debug("                     %s: %s", a, v)
             return user, attributes
-        finally:
-            page.close()
+        except Exception:
+            logger.warning("Cannot parse ticket validation response:", exc_info=True)
+            return None, None
+
+#eof
