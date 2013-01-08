@@ -203,8 +203,8 @@ class CASBackend_SAML(CASBackend):
                 raise ValueError("Invalid SAML response")
             if response.get('MajorVersion', None) != '1' or response.get('MinorVersion', None) != '1':
                 raise ValueError("Invalid SAML version in response: %s.%s", response.get('MajorVersion', '?'), response.get('MinorVersion', '?'))
-            if response.get('Recipient', '') != '?':
-                logger.warning("Recipient mismatch: %s != %s", response.get('Recipient', ''), '')
+            if response.get('Recipient', '') != service:
+                logger.warning("Recipient mismatch: %s != %s", response.get('Recipient', ''), service)
             else:
                 logger.debug("Rest of attributes are: %s", response.items())
 
