@@ -157,7 +157,7 @@ class CASBackend_SAML(CASBackend):
         url.add_data(self.SAML_REQUEST % rdict)
         try:
             page = None
-            logger.debug("Verifying ticket through: %s", url)
+            logger.debug("Verifying ticket through: %s", url.get_full_url())
             page = urllib2.urlopen(url)
             return ElementTree.parse(page)
         finally:
