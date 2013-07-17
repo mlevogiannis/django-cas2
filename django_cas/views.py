@@ -114,6 +114,9 @@ def login(request):
    
     user = auth.authenticate(ticket=ticket, service=service)
 
+    if isinstance(user, HttpResponse):
+        return user
+
     if user is not None:
         auth.login(request, user)
         return HttpResponseRedirect(next_page)
