@@ -1,4 +1,5 @@
-from distutils.core import setup
+#!/usr/bin/env python
+from setuptools import setup
 
 setup(
     author='KTH Infosys',
@@ -35,4 +36,5 @@ to the admin interface.
               'django_cas/management/commands'],
     url='https://github.com/fjollberg/django-cas2',
     version='KTH-2.0.3',
+	install_requires=['requests'],
 )

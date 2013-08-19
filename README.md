@@ -97,9 +97,26 @@ Create necessary database tables with the Django management command `python mana
 
 `CAS_SERVER_URL: None`
 
-Mandatory. The URL for the CAS server.
+Mandatory. The URL for the CAS server.  This should be a HTTPS URI, otherwise the authentication
+is vulnerable to man-in-the-middle attacks.
 
 #### Optional settings
+
+`CAS_SERVER_SSL_VERIFY: True`
+
+If `True`, HTTPS connections to the CAS server have their SSL certificates validated.  If set
+to `False`, SSL certificates will not be validated and the configuration will be insecure.
+
+The certificate is validated against a bundle included with [requests](http://www.python-requests.org),
+which comes from Mozilla.  However, it is recommended to pin your server's certificate by specifying a
+path to a public key, for example: `CAS_SERVER_SSL_VERIFY = '/usr/local/share/certificates/mycert.pem'`.
+
+Note that if a HTTP server is passed as the `CAS_SERVER_URL`, this option is *ignored*, and the module
+will proceed with *insecure* communication with the CAS server.
+
+`CAS_SERVER_SSL_CERT: None`
+
+This will pass a client certificate for use when connecting to the CAS server over HTTPS.
 
 `CAS_LOGOUT_COMPLETELY: True`
 
