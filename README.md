@@ -189,6 +189,29 @@ A list of URLs of proxies that are allowed to proxy authenticate to the Django a
 If set, the proxy chain provided by the CAS server in the validation response must not contain
 services that are not included in this list. There is currently no wild carding or other magic.
 
+`CAS_ATTRIBUTES : {}`
+
+A dict which describes mappings between phpCAS-style (CAS 2.0 draft) attributes
+and attributes of the User model.  If populated, this will cause `django-cas2`
+to overwrite the User model with attributes provided by CAS, if they are
+provided by the CAS server.
+
+In order to use this with Jasig CAS, it is required to [patch the CAS server](https://wiki.jasig.org/display/CASUM/Attributes#Attributes-AccessingattributesusingphpCAS)
+such that these attributes are propegated.
+
+The mapping uses the dictionary's value to refer to an attribute of the
+`django.contrib.auth.models.User` class, and the key is a unicode referring to the
+tag name that CAS provides.
+
+For example: `{u'cas:GivenName': 'first_name', u'cas:Surname': 'last_name', u'cas:Mail': 'email'}`.
+
+In the absence of any attribute listed, it will not be populated.  The behaviour
+of providing multiple tags for the same attribute in the User model is undefined.
+
+**Note**: This allows changing of the `is_admin` and `is_staff` attributes
+which can be a potential security issue.
+
+
 `CAS_EXTRA_LOGIN_PARAMS: None`
 
 > Not quite sure what the purpose for this is, anyone using it? How? I'm tempted to 

@@ -19,7 +19,8 @@ _DEFAULTS = {
 	'CAS_SERVER_SSL_VERIFY': True,
 	'CAS_SERVER_SSL_CERT': None,
     'CAS_AUTO_CREATE_USERS' : False,
-    'CAS_ALLOWED_PROXIES' : []
+    'CAS_ALLOWED_PROXIES': [],
+    'CAS_ATTRIBUTES': {}
 }
 
 for key, value in _DEFAULTS.iteritems():
