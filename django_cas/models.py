@@ -12,9 +12,9 @@ from django.db.models.signals import post_save, post_delete
 from django.dispatch.dispatcher import receiver
 from django.utils.translation import ugettext_lazy as _
 from django_cas.exceptions import CasTicketException
-from urllib import urlencode, urlopen
 from urlparse import urljoin
 from xml.dom import minidom
+import requests
 
 __all__ = ['Tgt']
 
@@ -56,10 +56,10 @@ class Tgt(models.Model):
             raise ImproperlyConfigured("No proxy callback set in settings")
 
         params = {'pgt': self.tgt, 'targetService': service}
-        page = urlopen(urljoin(settings.CAS_SERVER_URL, 'proxy') + '?' + urlencode(params))
+        page = requests.get(urljoin(settings.CAS_SERVER_URL, 'proxyValidate'), params=params, verify=settings.CAS_SERVER_SSL_VERIFY, cert=settings.CAS_SERVER_SSL_CERT)
 
         try:
-            response = minidom.parseString(page.read())
+            response = minidom.parseString(page.content)
             if response.getElementsByTagName('cas:proxySuccess'):
                 return response.getElementsByTagName('cas:proxyTicket')[0].firstChild.nodeValue
             raise CasTicketException("Failed to get proxy ticket")
