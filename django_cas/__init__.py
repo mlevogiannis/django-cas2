@@ -20,7 +20,7 @@ _DEFAULTS = {
     'CAS_ALLOWED_PROXIES' : []
 }
 
-for key, value in _DEFAULTS.iteritems():
+for key, value in _DEFAULTS.items():
     try:
         getattr(settings, key)
     except AttributeError:

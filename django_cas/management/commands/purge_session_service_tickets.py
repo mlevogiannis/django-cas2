@@ -15,5 +15,5 @@ class Command(NoArgsCommand):
         for sst in SessionServiceTicket.objects.all():
             if not s.exists(sst.session_key):
                 if verbose:
-                    print "deleting session service ticket for session: " + sst.session_key
+                    print("deleting session service ticket for session: " + sst.session_key)
                 sst.delete()

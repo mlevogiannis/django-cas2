@@ -5,9 +5,10 @@ from django.contrib.auth.backends import ModelBackend
 from django.contrib.auth.models import User
 from django_cas.exceptions import CasTicketException
 from django_cas.models import Tgt, PgtIOU
-from urllib import urlencode, urlopen
-import urllib2
-from urlparse import urljoin
+from urllib.parse import urlencode
+from urllib.request import urlopen
+import urllib.request, urllib.error, urllib.parse
+from urllib.parse import urljoin
 from xml.dom import minidom
 import logging
 import time
@@ -151,14 +152,14 @@ class CASBackend_SAML(CASBackend):
     def _get_response(self, rdict, params):
         """ send request and fetch response from CAS through HTTP
         """
-        url = urllib2.Request(urljoin(settings.CAS_SERVER_URL, 'samlValidate') \
+        url = urllib.request.Request(urljoin(settings.CAS_SERVER_URL, 'samlValidate') \
                                 + '?' + urlencode(params), '', self.HTTP_HEADERS)
 
         url.add_data(self.SAML_REQUEST % rdict)
         try:
             page = None
             logger.debug("Verifying ticket through: %s", url.get_full_url())
-            page = urllib2.urlopen(url)
+            page = urllib.request.urlopen(url)
             return ElementTree.parse(page)
         finally:
             if page:
@@ -206,7 +207,7 @@ class CASBackend_SAML(CASBackend):
             if response.get('Recipient', '') != service:
                 logger.warning("Recipient mismatch: %s != %s", response.get('Recipient', ''), service)
             else:
-                logger.debug("Rest of attributes are: %s", response.items())
+                logger.debug("Rest of attributes are: %s", list(response.items()))
 
             res_status = response.find(_status_code)
 
@@ -245,7 +246,7 @@ class CASBackend_SAML(CASBackend):
                 logger.info("Ticket validation of \"%s\" failed: %s", ticket, res_status.get('Value', ''))
                 return None, None
             logger.debug("User: %s, attributes: %d", user, len(attributes))
-            for a, v in attributes.items():
+            for a, v in list(attributes.items()):
                 logger.debug("                     %s: %s", a, v)
             return user, attributes
         except Exception:

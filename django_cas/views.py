@@ -5,8 +5,8 @@ from django.contrib import auth
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponseRedirect, HttpResponse, Http404
 from django_cas.models import PgtIOU, SessionServiceTicket
-from urllib import urlencode
-from urlparse import urljoin
+from urllib.parse import urlencode
+from urllib.parse import urljoin
 from xml.dom import minidom
 import logging
 import types
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 # Work around for UnicodeEncodeErrors. 
 def _fix_encoding(x):
-    if type(x) is types.UnicodeType:
+    if type(x) is str:
         return x.encode('utf-8');
     return x
 
