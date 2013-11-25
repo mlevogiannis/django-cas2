@@ -3,6 +3,7 @@
 from django.conf import settings
 from django.contrib.auth.backends import ModelBackend
 from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django_cas.exceptions import CasTicketException
 from django_cas.models import Tgt, PgtIOU
 from urllib.parse import urlencode
@@ -29,7 +30,7 @@ class CASBackend(ModelBackend):
     """ CAS authentication backend """
 
     def authenticate(self, ticket, service):
-        """ Verifies CAS ticket and gets or creates User object """
+        """ Verifies CAS ticket and gets or creates get_user_model() object """
 
         (username, proxies) = self._verify(ticket, service)
         if not username:
@@ -40,14 +41,14 @@ class CASBackend(ModelBackend):
                 if not proxy in settings.CAS_ALLOWED_PROXIES:
                     return None
 
-        logger.debug("User '%s' passed authentication by CAS backend", username)
+        logger.debug("get_user_model() '%s' passed authentication by CAS backend", username)
 
         try:
-            return User.objects.get(username=username)
-        except User.DoesNotExist:
+            return get_user_model().objects.get(username=username)
+        except get_user_model().DoesNotExist:
             if settings.CAS_AUTO_CREATE_USERS:
-                logger.info("User '%s' auto created by CAS backend", username)
-                return User.objects.create_user(username)
+                logger.info("get_user_model() '%s' auto created by CAS backend", username)
+                return get_user_model().objects.create_user(username)
             else:
                 logger.error("Failed authentication, user '%s' does not exist", username)
 
@@ -217,7 +218,7 @@ class CASBackend_SAML(CASBackend):
                 res_status_val = '?'
 
             if res_status_val == 'Success':
-                # User is validated
+                # get_user_model() is validated
                 for at in response.iterfind(_attribute):
                     att_name = at.get('AttributeName', None)
                     if not att_name:
@@ -245,7 +246,7 @@ class CASBackend_SAML(CASBackend):
                 # response.find("Status/StatusMessage") and ("Status/StatusDetail")
                 logger.info("Ticket validation of \"%s\" failed: %s", ticket, res_status.get('Value', ''))
                 return None, None
-            logger.debug("User: %s, attributes: %d", user, len(attributes))
+            logger.debug("get_user_model(): %s, attributes: %d", user, len(attributes))
             for a, v in list(attributes.items()):
                 logger.debug("                     %s: %s", a, v)
             return user, attributes

@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from django.conf import settings
 from django.contrib.auth import BACKEND_SESSION_KEY
 from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.contrib.auth.signals import user_logged_in, user_logged_out
 from django.contrib.sessions.models import Session
 from django.core.exceptions import ImproperlyConfigured
@@ -41,7 +42,7 @@ class Tgt(models.Model):
         The user can be specified as a User object or its Django username.
         Raises Tgt.DoesNotExist if the ticket can't be found.
         """
-        if isinstance(user, User):
+        if isinstance(user, get_user_model()):
             return Tgt.objects.get(username = user.username)
         return Tgt.objects.get(username = user)
 
