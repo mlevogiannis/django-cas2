@@ -6,13 +6,11 @@ from django.contrib.auth.models import User
 from django.contrib.auth import get_user_model
 from django_cas.exceptions import CasTicketException
 from django_cas.models import Tgt, PgtIOU
-from urllib.parse import urlencode
-from urllib.request import urlopen
-import urllib.request, urllib.error, urllib.parse
-from urllib.parse import urljoin
-from xml.dom import minidom
+from urlparse import urljoin
+from xml.dom import minidom, Node
 import logging
 import time
+import requests
 
 try:
     from xml.etree import ElementTree
@@ -30,9 +28,9 @@ class CASBackend(ModelBackend):
     """ CAS authentication backend """
 
     def authenticate(self, ticket, service):
-        """ Verifies CAS ticket and gets or creates get_user_model() object """
+        """ Verifies CAS ticket and gets or creates User object """
 
-        (username, proxies) = self._verify(ticket, service)
+        (username, proxies, attributes) = self._verify(ticket, service)
         if not username:
             return None
         
@@ -41,35 +39,57 @@ class CASBackend(ModelBackend):
                 if not proxy in settings.CAS_ALLOWED_PROXIES:
                     return None
 
-        logger.debug("get_user_model() '%s' passed authentication by CAS backend", username)
+        logger.debug("User '%s' passed authentication by CAS backend", username)
+
+        user = None
 
         try:
             return get_user_model().objects.get(username=username)
         except get_user_model().DoesNotExist:
             if settings.CAS_AUTO_CREATE_USERS:
-                logger.info("get_user_model() '%s' auto created by CAS backend", username)
+                logger.info("User '%s' auto created by CAS backend", username)
                 return get_user_model().objects.create_user(username)
+            user = User.objects.get(username=username)
+        except User.DoesNotExist:
+            if settings.CAS_AUTO_CREATE_USERS:
+                logger.debug("User '%s' auto created by CAS backend", username)
+                user = User.objects.create_user(username)
             else:
                 logger.error("Failed authentication, user '%s' does not exist", username)
 
-        return None
+        if user != None:
+            # user was found, set attributes
+            provided_attributes = False
+
+            for k, v in settings.CAS_ATTRIBUTES.iteritems():
+                if k in attributes:
+                    # the attribute exists in the attributes data, set it
+                    setattr(user, v, attributes[k])
+                    provided_attributes = True
+
+            if provided_attributes:
+                # we have changed the user object, save it.
+                user.save()
+
+        # returns None if invalid user
+        return user
 
     
     def _verify(self, ticket, service):
         """ Verifies CAS 2.0+ XML-based authentication ticket.
     
-            Returns tuple (username, [proxy URLs]) on success or None on failure.
+            Returns tuple (username, [proxy URLs], {attributes}) on success or None on failure.
         """
         params = {'ticket': ticket, 'service': service}
         if settings.CAS_PROXY_CALLBACK:
             params.update({'pgtUrl': settings.CAS_PROXY_CALLBACK})
         if settings.CAS_RENEW:
             params.update({'renew': 'true'})
-    
-        page = urlopen(urljoin(settings.CAS_SERVER_URL, 'proxyValidate') + '?' + urlencode(params))
+
+        page = requests.get(urljoin(settings.CAS_SERVER_URL, 'proxyValidate'), params=params, verify=settings.CAS_SERVER_SSL_VERIFY, cert=settings.CAS_SERVER_SSL_CERT)
     
         try:
-            response = minidom.parseString(page.read())
+            response = minidom.parseString(page.content)
             if response.getElementsByTagName('cas:authenticationFailure'):
                 logger.warn("Authentication failed from CAS server: %s", 
                             response.getElementsByTagName('cas:authenticationFailure')[0].firstChild.nodeValue)
@@ -77,6 +97,7 @@ class CASBackend(ModelBackend):
     
             username = response.getElementsByTagName('cas:user')[0].firstChild.nodeValue
             proxies = []
+            attributes = {}
             if response.getElementsByTagName('cas:proxyGrantingTicket'):
                 proxies = [p.firstChild.nodeValue for p in response.getElementsByTagName('cas:proxies')]
                 pgt = response.getElementsByTagName('cas:proxyGrantingTicket')[0].firstChild.nodeValue
@@ -91,12 +112,21 @@ class CASBackend(ModelBackend):
                     pgtIou.delete()
                 except:
                     logger.error("Failed to do proxy authentication.", exc_info=True)
+
+            attrib_tag = response.getElementsByTagName('cas:attributes')
+            if attrib_tag:
+                for child in attrib_tag[0].childNodes:
+                    if child.nodeType != Node.ELEMENT_NODE:
+                        # only parse tags
+                        continue
+
+                    attributes[child.tagName] = child.firstChild.nodeValue
     
             logger.debug("Cas proxy authentication succeeded for %s with proxies %s", username, proxies)
-            return (username, proxies)
+            return (username, proxies, attributes)
         except Exception as e:
             logger.error("Failed to verify CAS authentication", e)
-            return (None, None)
+            return (None, None, None)
         finally:
             page.close()
 
@@ -218,7 +248,7 @@ class CASBackend_SAML(CASBackend):
                 res_status_val = '?'
 
             if res_status_val == 'Success':
-                # get_user_model() is validated
+                # User is validated
                 for at in response.iterfind(_attribute):
                     att_name = at.get('AttributeName', None)
                     if not att_name:
@@ -246,7 +276,7 @@ class CASBackend_SAML(CASBackend):
                 # response.find("Status/StatusMessage") and ("Status/StatusDetail")
                 logger.info("Ticket validation of \"%s\" failed: %s", ticket, res_status.get('Value', ''))
                 return None, None
-            logger.debug("get_user_model(): %s, attributes: %d", user, len(attributes))
+            logger.debug("User: %s, attributes: %d", user, len(attributes))
             for a, v in list(attributes.items()):
                 logger.debug("                     %s: %s", a, v)
             return user, attributes
