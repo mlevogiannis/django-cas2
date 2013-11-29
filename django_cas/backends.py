@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth import get_user_model
 from django_cas.exceptions import CasTicketException
 from django_cas.models import Tgt, PgtIOU
-from urlparse import urljoin
+from urllib.parse import urljoin
 from xml.dom import minidom, Node
 import logging
 import time

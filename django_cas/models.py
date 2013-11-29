@@ -3,7 +3,6 @@
 from datetime import datetime, timedelta
 from django.conf import settings
 from django.contrib.auth import BACKEND_SESSION_KEY
-from django.contrib.auth.models import User
 from django.contrib.auth import get_user_model
 from django.contrib.auth.signals import user_logged_in, user_logged_out
 from django.contrib.sessions.models import Session
@@ -13,7 +12,7 @@ from django.db.models.signals import post_save, post_delete
 from django.dispatch.dispatcher import receiver
 from django.utils.translation import ugettext_lazy as _
 from django_cas.exceptions import CasTicketException
-from urlparse import urljoin
+from urllib.parse import urljoin
 from xml.dom import minidom
 import requests
 
