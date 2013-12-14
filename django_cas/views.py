@@ -147,7 +147,7 @@ def logout(request):
     """ Redirects to CAS logout page. """
 
     auth.logout(request)
-    next_page = _redirect_url(request)
+    next_page = str(_redirect_url(request))
     if settings.CAS_LOGOUT_COMPLETELY:
         return HttpResponseRedirect(_logout_url(request, next_page))
     else:
