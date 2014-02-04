@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth import get_user_model
 from django_cas.exceptions import CasTicketException
 from django_cas.models import Tgt, PgtIOU
-from urllib.parse import urljoin
+from django.utils.six.moves.urllib.parse import urljoin
 from xml.dom import minidom, Node
 import logging
 import time
@@ -33,7 +33,7 @@ class CASBackend(ModelBackend):
         (username, proxies, attributes) = self._verify(ticket, service)
         if not username:
             return None
-        
+
         if settings.CAS_ALLOWED_PROXIES:
             for proxy in proxies:
                 if not proxy in settings.CAS_ALLOWED_PROXIES:
@@ -74,10 +74,10 @@ class CASBackend(ModelBackend):
         # returns None if invalid user
         return user
 
-    
+
     def _verify(self, ticket, service):
         """ Verifies CAS 2.0+ XML-based authentication ticket.
-    
+
             Returns tuple (username, [proxy URLs], {attributes}) on success or None on failure.
         """
         params = {'ticket': ticket, 'service': service}
@@ -87,14 +87,14 @@ class CASBackend(ModelBackend):
             params.update({'renew': 'true'})
 
         page = requests.get(urljoin(settings.CAS_SERVER_URL, 'proxyValidate'), params=params, verify=settings.CAS_SERVER_SSL_VERIFY, cert=settings.CAS_SERVER_SSL_CERT)
-    
+
         try:
             response = minidom.parseString(page.content)
             if response.getElementsByTagName('cas:authenticationFailure'):
-                logger.warn("Authentication failed from CAS server: %s", 
+                logger.warn("Authentication failed from CAS server: %s",
                             response.getElementsByTagName('cas:authenticationFailure')[0].firstChild.nodeValue)
                 return (None, None, None)
-    
+
             username = response.getElementsByTagName('cas:user')[0].firstChild.nodeValue
             proxies = []
             attributes = {}
@@ -121,7 +121,7 @@ class CASBackend(ModelBackend):
                         continue
 
                     attributes[child.tagName] = child.firstChild.nodeValue
-    
+
             logger.debug("Cas proxy authentication succeeded for %s with proxies %s", username, proxies)
             return (username, proxies, attributes)
         except Exception as e:
@@ -132,12 +132,12 @@ class CASBackend(ModelBackend):
 
 
     def _get_pgtiou(self, pgt):
-        """ Returns a PgtIOU object given a pgt. 
-        
-            The PgtIOU (tgt) is set by the CAS server in a different request that has 
-            completed before this call, however, it may not be found in the database 
-            by this calling thread, hence the attempt to get the ticket is retried 
-            for up to 5 seconds. This should be handled some better way. 
+        """ Returns a PgtIOU object given a pgt.
+
+            The PgtIOU (tgt) is set by the CAS server in a different request that has
+            completed before this call, however, it may not be found in the database
+            by this calling thread, hence the attempt to get the ticket is retried
+            for up to 5 seconds. This should be handled some better way.
         """
         pgtIou = None
         retries_left = 5
@@ -228,7 +228,7 @@ class CASBackend_SAML(CASBackend):
             assert elem.tag == '{http://schemas.xmlsoap.org/soap/envelope/}Envelope' , elem.tag
             elem = elem[0]
             assert elem.tag == '{http://schemas.xmlsoap.org/soap/envelope/}Body' , elem.tag
-            
+
             response = elem[0]
             if response.tag !=  self.SAML_1_0_PROTOCOL_NS + 'Response':
                 logger.warning("SAML response is not valid: %s", response.tag)
@@ -261,13 +261,13 @@ class CASBackend_SAML(CASBackend):
                         # the "{http://www.w3.org/2001/XMLSchema-instance}type"
                         # attribute that could indicate a non-string variable
                         vals.append(ve.text)
-                    
+
                     if att_name == 'uid':
                         if len(vals) != 1:
                             # that would be ambiguous, it's a problem
                             raise ValueError("Attribute \"uid\" has %d values!" % len(vals))
                         user = vals[0]
-                    
+
                     if len(vals) == 1:
                         attributes[att_name] = vals[0]
                     else:
