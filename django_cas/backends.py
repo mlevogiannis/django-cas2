@@ -93,7 +93,7 @@ class CASBackend(ModelBackend):
             if response.getElementsByTagName('cas:authenticationFailure'):
                 logger.warn("Authentication failed from CAS server: %s", 
                             response.getElementsByTagName('cas:authenticationFailure')[0].firstChild.nodeValue)
-                return (None, None)
+                return (None, None, None)
     
             username = response.getElementsByTagName('cas:user')[0].firstChild.nodeValue
             proxies = []
