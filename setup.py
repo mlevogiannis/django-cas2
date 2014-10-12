@@ -15,7 +15,7 @@ setup(
         'Topic :: Internet :: WWW/HTTP',
     ],
     description='CAS 2.0 authentication backend for Django',
-    download_url='https://github.com/fjollberg/django-cas2',
+    download_url='https://github.com/paulocheque/django-cas2',
     keywords='django cas cas2 authentication middleware backend',
     license='MIT',
     long_description="""
@@ -34,7 +34,7 @@ to the admin interface.
     packages=['django_cas',
               'django_cas/management',
               'django_cas/management/commands'],
-    url='https://github.com/fjollberg/django-cas2',
+    url='https://github.com/paulocheque/django-cas2',
     version='KTH-2.0.3',
 	install_requires=['requests'],
 )
