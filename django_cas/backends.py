@@ -77,7 +77,6 @@ class CASBackend(ModelBackend):
         # returns None if invalid user
         return user
 
-
     def _verify(self, ticket, service):
         """ Verifies CAS 2.0+ XML-based authentication ticket.
 
@@ -89,7 +88,8 @@ class CASBackend(ModelBackend):
         if settings.CAS_RENEW:
             params.update({'renew': 'true'})
 
-        page = requests.get(urljoin(settings.CAS_SERVER_URL, 'proxyValidate'), params=params, verify=settings.CAS_SERVER_SSL_VERIFY, cert=settings.CAS_SERVER_SSL_CERT)
+        page = requests.get(urljoin(settings.CAS_SERVER_URL, 'proxyValidate'), params=params,
+            verify=settings.CAS_SERVER_SSL_VERIFY, cert=settings.CAS_SERVER_SSL_CERT)
 
         try:
             response = minidom.parseString(page.content)
@@ -133,7 +133,6 @@ class CASBackend(ModelBackend):
         finally:
             page.close()
 
-
     def _get_pgtiou(self, pgt):
         """ Returns a PgtIOU object given a pgt.
 
@@ -151,6 +150,7 @@ class CASBackend(ModelBackend):
                 time.sleep(1)
                 retries_left -= 1
         raise CasTicketException("Could not find pgtIou for pgt %s" % pgt)
+
 
 class CASBackend_SAML(CASBackend):
     SAML_1_0_NS = 'urn:oasis:names:tc:SAML:1.0:'
@@ -286,5 +286,3 @@ class CASBackend_SAML(CASBackend):
         except Exception:
             logger.warning("Cannot parse ticket validation response:", exc_info=True)
             return None, None
-
-#eof

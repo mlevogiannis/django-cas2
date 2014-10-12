@@ -36,7 +36,6 @@ class Tgt(models.Model):
         verbose_name = _('ticket granting ticket')
         verbose_name_plural = _('ticket granting tickets')
 
-
     @classmethod
     def get_tgt_for_user(self, user):
         """
@@ -49,7 +48,6 @@ class Tgt(models.Model):
             return Tgt.objects.get(username = user.username)
         return Tgt.objects.get(username = user)
 
-
     def get_proxy_ticket_for_service(self, service):
         """
         Returns a string representing a proxy ticket for the given service as
@@ -61,7 +59,8 @@ class Tgt(models.Model):
             raise ImproperlyConfigured("No proxy callback set in settings")
 
         params = {'pgt': self.tgt, 'targetService': service}
-        page = requests.get(urljoin(settings.CAS_SERVER_URL, 'proxyValidate'), params=params, verify=settings.CAS_SERVER_SSL_VERIFY, cert=settings.CAS_SERVER_SSL_CERT)
+        page = requests.get(urljoin(settings.CAS_SERVER_URL, 'proxyValidate'), params=params,
+            verify=settings.CAS_SERVER_SSL_VERIFY, cert=settings.CAS_SERVER_SSL_CERT)
 
         try:
             response = minidom.parseString(page.content)
@@ -92,19 +91,16 @@ class SessionServiceTicket(models.Model):
     service_ticket = models.CharField(_('service ticket'), max_length=255, primary_key=True)
     session_key = models.CharField(_('session key'), max_length=40)
 
-
     class Meta:
         db_table = 'django_cas_session_service_ticket'
         verbose_name = _('session service ticket')
         verbose_name_plural = _('session service tickets')
-
 
     def get_session(self):
         """ Searches the session in store and returns it """
         session_engine = __import__(name=settings.SESSION_ENGINE, fromlist=['SessionStore'])
         SessionStore = getattr(session_engine, 'SessionStore')
         return SessionStore(session_key=self.session_key)
-
 
     def __unicode__(self):
         return self.ticket

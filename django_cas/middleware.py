@@ -26,7 +26,6 @@ class CASMiddleware(object):
                  "AuthenticationMiddleware'.")
         assert hasattr(request, 'user'), error
 
-
     def process_view(self, request, view_func, view_args, view_kwargs):
         """ Forwards unauthenticated requests to the admin page to the CAS
             login URL, as well as calls to django.contrib.auth.views.login and
@@ -49,7 +48,6 @@ class CASMiddleware(object):
                 raise PermissionDenied("No staff priviliges")
         params = urlencode({auth.REDIRECT_FIELD_NAME: request.get_full_path()})
         return HttpResponseRedirect(settings.LOGIN_URL + '?' + params)
-
 
     def process_exception(self, request, exception):
         """ When we get a CasTicketException it is probably caused by the ticket timing out.
