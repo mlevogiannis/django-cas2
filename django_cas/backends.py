@@ -105,12 +105,12 @@ class CASBackend(ModelBackend):
                 pgt = response.getElementsByTagName('cas:proxyGrantingTicket')[0].firstChild.nodeValue
                 try:
                     pgtIou = self._get_pgtiou(pgt)
-                    tgt = Tgt.objects.get(username = username)
+                    tgt = Tgt.objects.get(username=username)
                     tgt.tgt = pgtIou.tgt
                     tgt.save()
                     pgtIou.delete()
                 except Tgt.DoesNotExist:
-                    Tgt.objects.create(username = username, tgt = pgtIou.tgt)
+                    Tgt.objects.create(username=username, tgt=pgtIou.tgt)
                     pgtIou.delete()
                 except:
                     logger.error("Failed to do proxy authentication.", exc_info=True)
@@ -267,7 +267,7 @@ class CASBackend_SAML(CASBackend):
                     if att_name == 'uid':
                         if len(vals) != 1:
                             # that would be ambiguous, it's a problem
-                            raise ValueError("Attribute \"uid\" has %d values!" % len(vals))
+                            raise ValueError('Attribute "uid" has %d values!' % len(vals))
                         user = vals[0]
 
                     if len(vals) == 1:
@@ -276,7 +276,7 @@ class CASBackend_SAML(CASBackend):
                         attributes[att_name] = vals
             else:
                 # response.find("Status/StatusMessage") and ("Status/StatusDetail")
-                logger.info("Ticket validation of \"%s\" failed: %s", ticket, res_status.get('Value', ''))
+                logger.info('Ticket validation of "%s" failed: %s', ticket, res_status.get('Value', ''))
                 return None, None
             logger.debug("User: %s, attributes: %d", user, len(attributes))
             for a, v in list(attributes.items()):
