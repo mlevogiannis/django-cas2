@@ -13,9 +13,13 @@ except ImportError:
 import requests
 
 from django.conf import settings
-from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import ModelBackend
-from django.contrib.auth.models import User
+try:
+    # Django >= 1.5
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+except ImportError:
+    from django.contrib.auth.models import User
 from django.utils.six.moves.urllib.parse import urljoin
 
 from django_cas.exceptions import CasTicketException
@@ -47,16 +51,11 @@ class CASBackend(ModelBackend):
         user = None
 
         try:
-            return get_user_model().objects.get(username=username)
-        except get_user_model().DoesNotExist:
-            if settings.CAS_AUTO_CREATE_USERS:
-                logger.info("User '%s' auto created by CAS backend", username)
-                return get_user_model().objects.create_user(username)
-            user = User.objects.get(username=username)
+            return User.objects.get(username=username)
         except User.DoesNotExist:
             if settings.CAS_AUTO_CREATE_USERS:
-                logger.debug("User '%s' auto created by CAS backend", username)
-                user = User.objects.create_user(username)
+                logger.info("User '%s' auto created by CAS backend", username)
+                return User.objects.create_user(username)
             else:
                 logger.error("Failed authentication, user '%s' does not exist", username)
 
