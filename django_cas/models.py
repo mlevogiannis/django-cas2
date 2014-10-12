@@ -1,6 +1,10 @@
 """ Django CAS 2.0 authentication models """
 
 from datetime import datetime, timedelta
+from xml.dom import minidom
+
+import requests
+
 from django.conf import settings
 from django.contrib.auth import BACKEND_SESSION_KEY
 from django.contrib.auth import get_user_model
@@ -10,13 +14,14 @@ from django.core.exceptions import ImproperlyConfigured
 from django.db import models
 from django.db.models.signals import post_save, post_delete
 from django.dispatch.dispatcher import receiver
-from django.utils.translation import ugettext_lazy as _
-from django_cas.exceptions import CasTicketException
 from django.utils.six.moves.urllib.parse import urljoin
-from xml.dom import minidom
-import requests
+from django.utils.translation import ugettext_lazy as _
+
+from django_cas.exceptions import CasTicketException
+
 
 __all__ = ['Tgt']
+
 
 class Tgt(models.Model):
     """

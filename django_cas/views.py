@@ -1,19 +1,23 @@
 """ Django CAS 2.0 authentication login/logout replacement views """
 
+import logging
+import types
+from xml.dom import minidom
+
 from django.conf import settings
 from django.contrib import auth
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponseRedirect, HttpResponse, Http404
-from django_cas.models import PgtIOU, SessionServiceTicket
 from django.utils.http import urlencode
 from django.utils.six.moves.urllib.parse import urljoin
-from xml.dom import minidom
-import logging
-import types
+
+from django_cas.models import PgtIOU, SessionServiceTicket
+
 
 __all__ = ['login', 'logout', 'proxy_callback']
 
 logger = logging.getLogger(__name__)
+
 
 # Work around for UnicodeEncodeErrors.
 def _fix_encoding(x):

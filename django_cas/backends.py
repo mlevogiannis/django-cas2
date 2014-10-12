@@ -1,28 +1,31 @@
 """ Django CAS 2.0 authentication backend """
 
-from django.conf import settings
-from django.contrib.auth.backends import ModelBackend
-from django.contrib.auth.models import User
-from django.contrib.auth import get_user_model
-from django_cas.exceptions import CasTicketException
-from django_cas.models import Tgt, PgtIOU
-from django.utils.six.moves.urllib.parse import urljoin
-from xml.dom import minidom, Node
 import logging
 import time
-import requests
-
+import uuid
+from xml.dom import minidom, Node
 try:
     from xml.etree import ElementTree
     _hush_pyflakes = [ElementTree]
 except ImportError:
     from elementtree import ElementTree
 
-import uuid
+import requests
+
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.contrib.auth.backends import ModelBackend
+from django.contrib.auth.models import User
+from django.utils.six.moves.urllib.parse import urljoin
+
+from django_cas.exceptions import CasTicketException
+from django_cas.models import Tgt, PgtIOU
+
 
 __all__ = ['CASBackend', 'CASBackend_SAML']
 
 logger = logging.getLogger(__name__)
+
 
 class CASBackend(ModelBackend):
     """ CAS authentication backend """

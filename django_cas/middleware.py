@@ -5,11 +5,14 @@ from django.contrib import auth
 from django.contrib.auth.views import login, logout
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponseRedirect
+from django.utils.six.moves.urllib.parse import urlencode
+
 from django_cas.exceptions import CasTicketException
 from django_cas.views import login as cas_login, logout as cas_logout
-from urllib.parse import urlencode
+
 
 __all__ = ['CASMiddleware']
+
 
 class CASMiddleware(object):
     """Middleware that allows CAS authentication on admin pages"""
@@ -33,7 +36,7 @@ class CASMiddleware(object):
             return cas_login(request, *view_args, **view_kwargs)
         if view_func == logout:
             return cas_logout(request, *view_args, **view_kwargs)
-        
+
         # The rest of this method amends the Django admin authorization wich
         # will post a username/password dialog to authenticate to django admin.
         if not view_func.__module__.startswith('django.contrib.admin.'):
@@ -44,7 +47,7 @@ class CASMiddleware(object):
                 return None
             else:
                 raise PermissionDenied("No staff priviliges")
-        params = urlencode({auth.REDIRECT_FIELD_NAME: request.get_full_path()})        
+        params = urlencode({auth.REDIRECT_FIELD_NAME: request.get_full_path()})
         return HttpResponseRedirect(settings.LOGIN_URL + '?' + params)
 
 

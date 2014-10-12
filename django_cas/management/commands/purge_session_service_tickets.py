@@ -1,10 +1,12 @@
 from django.conf import settings
 from django.core.management.base import NoArgsCommand
+
 from django_cas.models import SessionServiceTicket
+
 
 class Command(NoArgsCommand):
     help = "Purges CAS session - service ticket mappings not matching any session."
-    
+
     def handle_noargs(self, **options):
         """Purges Session Service Tickets with non-existing session keys."""
 
