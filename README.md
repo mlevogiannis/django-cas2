@@ -290,7 +290,7 @@ to or by you if you use it.
 
 ## Rationale for forking
 
-The django-cas project has been rather poorly maintained for some time. The most obviuos changes
+The django-cas project has been rather poorly maintained for some time. The most obvious changes
 include moving the repo around. Patches supplied by myself in order to support proxy authentication
 and by others for single sign out (http://code.google.com/r/arnaudgrausem-django-cas/) have
 not been integrated but are in fact lost in the repo changes.
