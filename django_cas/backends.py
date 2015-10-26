@@ -231,10 +231,10 @@ class CASBackend_SAML(CASBackend):
             # TODO: proxies?
 
             # Find the authentication status
-            elem = tree.getroot()
-            assert elem.tag == '{http://schemas.xmlsoap.org/soap/envelope/}Envelope' , elem.tag
-            elem = elem[0]
-            assert elem.tag == '{http://schemas.xmlsoap.org/soap/envelope/}Body' , elem.tag
+            relem = tree.getroot()
+            assert relem.tag == '{http://schemas.xmlsoap.org/soap/envelope/}Envelope' , relem.tag
+            elem = relem.find('{http://schemas.xmlsoap.org/soap/envelope/}Body')
+            assert elem, "No Body elem in %r" % relem.tag
 
             response = elem[0]
             if response.tag !=  self.SAML_1_0_PROTOCOL_NS + 'Response':
