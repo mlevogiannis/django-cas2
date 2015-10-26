@@ -28,6 +28,8 @@ def _fix_encoding(x):
 
 def _service(request):
     """ Returns service host URL as derived from request """
+    if getattr(settings, 'CAS_SERVICE_URL', False):
+        return settings.CAS_SERVICE_URL.rstrip('/')
 
     return ('http://', 'https://')[request.is_secure()] + request.get_host()
 

@@ -169,6 +169,11 @@ name used by your Django application. The name is configurable by setting `CAS_G
 Default URL to redirect to after login and logout when there is no referrer or next
 page provided by Django.
 
+`CAS_SERVICE_URL:  None`
+
+When our Django application is behind a reverse proxy, `request.get_host()` would not
+yield the correct hostname. Override that with `CAS_SERVICE_URL = 'https://our-public.host.com'`
+
 `CAS_IGNORE_REFERER: False`
 
 If `True`, logging out of the application will always send the user to the URL specified by `CAS_REDIRECT_URL`.
