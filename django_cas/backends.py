@@ -112,7 +112,7 @@ class CASBackend(ModelBackend):
                 except Tgt.DoesNotExist:
                     Tgt.objects.create(username=username, tgt=pgtIou.tgt)
                     pgtIou.delete()
-                except:
+                except Exception:
                     logger.error("Failed to do proxy authentication.", exc_info=True)
 
             attrib_tag = response.getElementsByTagName('cas:attributes')
