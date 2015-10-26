@@ -111,23 +111,30 @@ def login(request):
     ticket = request.GET.get('ticket')
 
     if settings.CAS_GATEWAY and request.GET.get(settings.CAS_GATEWAY_PARAM) and not ticket:
+        logger.debug("No ticket for CAS gateway for %s", request.META.get('REMOTE_ADDR', ''))
         raise PermissionDenied()
 
     if not ticket:
         return HttpResponseRedirect(_login_url(service))
 
-    user = auth.authenticate(ticket=ticket, service=service)
+    try:
+        user = auth.authenticate(ticket=ticket, service=service)
+    except Exception:
+        logger.debug("Failed auth for %s:", request.META.get('REMOTE_ADDR', ''), exc_info=True)
+        raise
 
     if isinstance(user, HttpResponse):
         return user
 
     if user is not None:
         auth.login(request, user)
+        logger.debug("Login ok for %s, redirect to: %s", user, next_page)
         return HttpResponseRedirect(next_page)
 
     if settings.CAS_RETRY_LOGIN:
         return HttpResponseRedirect(_login_url(service))
 
+    logger.debug("No user, no auth for %s", request.META.get('REMOTE_ADDR', ''))
     raise PermissionDenied("Login failed")
 
 
