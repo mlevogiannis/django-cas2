@@ -20,7 +20,10 @@ try:
     User = get_user_model()
 except ImportError:
     from django.contrib.auth.models import User
-from django.utils.six.moves.urllib.parse import urljoin
+
+from django.utils.six.moves import urllib
+from django.utils.six.moves.urllib.parse import urljoin, urlencode
+
 
 from django_cas.exceptions import CasTicketException
 from django_cas.models import Tgt, PgtIOU
@@ -217,7 +220,7 @@ class CASBackend_SAML(CASBackend):
             # logger.debug("The tree: %s", ElementTree.dump(tree))
         except Exception:
             logger.exception("Cannot get ticket validation response:")
-            return (None, None)
+            return (None, None, None)
 
         _status_code = './/' + self.SAML_1_0_PROTOCOL_NS + 'StatusCode'
         _attribute = './/%sAttributeStatement/%sAttribute' % (self.SAML_1_0_ASSERTION_NS, self.SAML_1_0_ASSERTION_NS)
@@ -225,6 +228,8 @@ class CASBackend_SAML(CASBackend):
         try:
             user = None
             attributes = {}
+            # TODO: proxies?
+
             # Find the authentication status
             elem = tree.getroot()
             assert elem.tag == '{http://schemas.xmlsoap.org/soap/envelope/}Envelope' , elem.tag
@@ -277,11 +282,11 @@ class CASBackend_SAML(CASBackend):
             else:
                 # response.find("Status/StatusMessage") and ("Status/StatusDetail")
                 logger.info('Ticket validation of "%s" failed: %s', ticket, res_status.get('Value', ''))
-                return None, None
+                return None, None, None
             logger.debug("User: %s, attributes: %d", user, len(attributes))
             for a, v in list(attributes.items()):
                 logger.debug("                     %s: %s", a, v)
-            return user, attributes
+            return user, [], attributes
         except Exception:
             logger.warning("Cannot parse ticket validation response:", exc_info=True)
-            return None, None
+            return None, None, None
