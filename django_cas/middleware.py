@@ -45,7 +45,7 @@ class CASMiddleware(object):
             if request.user.is_staff:
                 return None
             else:
-                raise PermissionDenied("No staff priviliges")
+                raise PermissionDenied("No staff privileges")
         params = urlencode({auth.REDIRECT_FIELD_NAME: request.get_full_path()})
         return HttpResponseRedirect(settings.LOGIN_URL + '?' + params)
 
