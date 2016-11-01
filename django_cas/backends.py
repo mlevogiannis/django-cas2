@@ -54,11 +54,11 @@ class CASBackend(ModelBackend):
         user = None
 
         try:
-            return User.objects.get(username=username)
+            user = User.objects.get(username=username)
         except User.DoesNotExist:
             if settings.CAS_AUTO_CREATE_USERS:
                 logger.info("User '%s' auto created by CAS backend", username)
-                return User.objects.create_user(username)
+                user = User.objects.create_user(username)
             else:
                 logger.error("Failed authentication, user '%s' does not exist", username)
 
